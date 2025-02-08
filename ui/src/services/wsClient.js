@@ -21,7 +21,7 @@ class WebSocketClient {
   connect() {
     if (this.socket) return;
 
-    this.socket = new WebSocket(`wss://${window.location.host}/ws`);
+    this.socket = new WebSocket(`ws://127.0.0.1:8080/ws`);
     
     this.socket.binaryType = 'arraybuffer';
     this.socket.onopen = this.handleOpen.bind(this);

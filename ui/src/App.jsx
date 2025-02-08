@@ -1,6 +1,5 @@
-// ui/src/App.jsx
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Link, Switch } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { wsClient } from './services/wsClient';
 import TensorViewer from './components/TensorViewer/TensorViewer';
 import BreakpointManager from './components/BreakpointManager/BreakpointManager';
@@ -32,30 +31,24 @@ const App = () => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-hidden p-6">
-          <Switch>
-            <Route exact path="/">
-              <div className="grid grid-cols-3 gap-6 h-full">
-                <div className="col-span-2">
-                  <TensorViewer />
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <div className="grid grid-cols-3 gap-6 h-full">
+                  <div className="col-span-2">
+                    <TensorViewer />
+                  </div>
+                  <div className="col-span-1">
+                    <BreakpointManager />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <BreakpointManager />
-                </div>
-              </div>
-            </Route>
-            
-            <Route path="/tensor/:tensorId">
-              <TensorViewer />
-            </Route>
-
-            <Route path="/breakpoints">
-              <BreakpointManager />
-            </Route>
-
-            <Route path="/metrics">
-              <MetricsDashboard />
-            </Route>
-          </Switch>
+              }
+            />
+            <Route path="/tensor/:tensorId" element={<TensorViewer />} />
+            <Route path="/breakpoints" element={<BreakpointManager />} />
+            <Route path="/metrics" element={<MetricsDashboard />} />
+          </Routes>
         </main>
 
         {/* Status Bar */}
@@ -63,7 +56,9 @@ const App = () => {
           <div className="flex justify-between items-center px-4">
             <span>ModelViz Debugging Toolkit</span>
             <div className="flex items-center space-x-4">
-              <span>WebSocket: {wsClient.socket?.readyState === 1 ? '✅ Connected' : '❌ Disconnected'}</span>
+              <span>
+                WebSocket: {wsClient.socket?.readyState === 1 ? '✅ Connected' : '❌ Disconnected'}
+              </span>
               <span>v1.0.0</span>
             </div>
           </div>
@@ -74,3 +69,4 @@ const App = () => {
 };
 
 export default App;
+
