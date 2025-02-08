@@ -3,6 +3,15 @@
 ![TransViz Demo](docs/demo.gif) <!-- Add actual demo media later -->
 
 ## STILLS UNDER EARLY PHASES OF DEVELOPMENT
+Work being done:
+- Packaging and dependencies
+- Tests & Examples of Usage
+- Issues being found at usage
+- Overall the python engine
+
+Work not yet done:
+- UI stills in just first draft
+- CI/CD, etc
 
 A real-time visualization and debugging toolkit for neural networks, featuring:
 
