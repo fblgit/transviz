@@ -89,7 +89,7 @@ module.exports = {
     proxy: {
       '/api': 'http://localhost:8000',
       '/ws': {
-        target: 'ws://localhost:8000',
+        target: 'ws://localhost:8080',
         ws: true
       }
     }

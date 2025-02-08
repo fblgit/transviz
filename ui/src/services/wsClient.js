@@ -4,25 +4,28 @@ import { useStore as useTensorStore } from '../stores/tensorStore';
 import { useStore as useBreakpointStore } from '../stores/breakpointStore';
 import { useStore as useMetricsStore } from '../stores/metricsStore';
 
+let socket = null;
+
 class WebSocketClient {
   constructor() {
-    this.socket = null;
+    this.socket = socket;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.subscribers = new Map();
     this.pendingMessages = [];
+    this.isClosedManually = false; // distinguishes manual close vs. unintentional disconnect
   }
 
   initialize() {
+    this.isClosedManually = false; // Reset manual close flag
     this.connect();
     window.addEventListener('beforeunload', () => this.close());
   }
 
   connect() {
-    if (this.socket) return;
+    if (this.socket || this.isClosedManually) return; // Prevent reconnection if already connected or closed manually
 
     this.socket = new WebSocket(`ws://127.0.0.1:8080/ws`);
-    
     this.socket.binaryType = 'arraybuffer';
     this.socket.onopen = this.handleOpen.bind(this);
     this.socket.onmessage = this.handleMessage.bind(this);
@@ -39,9 +42,9 @@ class WebSocketClient {
   handleMessage(event) {
     try {
       const message = this.parseMessage(event.data);
-      if (!validateWebSocketMessage(message)) return;
+      if (!message || !validateWebSocketMessage(message)) return;
 
-      switch(message.type) {
+      switch (message.type) {
         case 'tensor_update':
           useTensorStore.getState().handleTensorUpdate(message);
           break;
@@ -72,9 +75,10 @@ class WebSocketClient {
   }
 
   handleClose(event) {
-    console.log(`WebSocket closed: ${event.reason}`);
+    console.log(`WebSocket closed: ${event.reason || 'No reason provided'}`);
     this.socket = null;
-    if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
+    // Only attempt reconnection if the socket was not closed manually
+    if (!this.isClosedManually && this.reconnectAttempts < this.maxReconnectAttempts) {
       this.scheduleReconnect();
     }
   }
@@ -86,11 +90,12 @@ class WebSocketClient {
   scheduleReconnect() {
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
     this.reconnectAttempts++;
+    console.log(`Attempting reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
     setTimeout(() => this.connect(), delay);
   }
 
   send(message) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       const payload = JSON.stringify(message);
       this.socket.send(payload);
     } else {
@@ -122,9 +127,11 @@ class WebSocketClient {
   }
 
   close() {
+    // Mark as manually closed so that reconnection is not attempted
+    this.isClosedManually = true;
     if (this.socket) {
       this.socket.close();
-      this.socket = null;
+      //this.socket = null;
     }
   }
 }
