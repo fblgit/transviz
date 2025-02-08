@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ModelViz - Neural Network Visualization and Debugging Toolkit">
+  
+  <title>ModelViz Debugger</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://rsms.me/inter/inter.css');
+    :root { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+
+<body class="bg-gray-900 text-white">
+  <noscript>
+    <div class="p-4 bg-red-800 text-center">
+      JavaScript is required to run this application. Please enable JavaScript to continue.
+    </div>
+  </noscript>
+  
+  <div id="root"></div>
+  
+  <!-- WebGL Polyfill for older browsers -->
+  <script src="https://unpkg.com/webgl-raub@3.0.0/index.js"></script>
+  
+  <!-- Production Bundle -->
+  <script src="%PUBLIC_URL%/bundle.js"></script>
+</body>
+</html>
