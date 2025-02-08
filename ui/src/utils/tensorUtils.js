@@ -1,5 +1,6 @@
-import { SIMD } from 'wasm-feature-detect';
-import tensorWasm from './tensor.wasm';
+//import { SIMD } from 'wasm-feature-detect';
+import { simd } from 'wasm-feature-detect';
+//import tensorWasm from './tensor.wasm';
 
 /**
  * Tensor Processing Utilities
@@ -15,13 +16,23 @@ import tensorWasm from './tensor.wasm';
 // WebAssembly module instance
 let wasmInstance = null;
 
-// Initialize WebAssembly module
-(async function initWasm() {
-  if (await SIMD()) {
-    const module = await WebAssembly.compile(tensorWasm);
-    wasmInstance = await WebAssembly.Instance(module);
+async function checkSIMDSupport() {
+  if (await simd()) {
+    console.log("SIMD is supported");
+    // Load SIMD-enabled WebAssembly module
+  } else {
+    console.log("SIMD is not supported");
+    // Load fallback WebAssembly module
   }
-})();
+}
+
+// Initialize WebAssembly module
+//(async function initWasm() {
+//  if (await SIMD()) {
+//    const module = await WebAssembly.compile(tensorWasm);
+//    wasmInstance = await WebAssembly.Instance(module);
+//  }
+//})();
 
 /** 
  * Tensor Structure Validator

@@ -3,6 +3,10 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
+  experiments: {
+    asyncWebAssembly: true,
+    syncWebAssembly: true
+  },
   entry: './src/index.jsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -19,6 +23,10 @@ module.exports = {
   },
   module: {
     rules: [
+      {
+        test: /\.wasm$/,
+        type: 'webassembly/async'
+      },
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,

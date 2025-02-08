@@ -38,3 +38,13 @@ export const tensorSummary = (data, metadata) => {
     updateRatio: metadata.updates?.ratio || 0
   };
 };
+
+// tensorMath.js - Add formatting functions
+export const formatStats = (stats) => {
+  return {
+    mean: stats.mean.toFixed(4),
+    std: stats.std.toFixed(4),
+    min: stats.min.toFixed(4),
+    max: stats.max.toFixed(4)
+  };
+};

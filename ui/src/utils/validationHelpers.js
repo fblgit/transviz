@@ -209,6 +209,22 @@ export class ValidationError extends Error {
   }
 }
 
+// validationHelpers.js - Add missing export
+//export const tensorValidator = (tensor) => {
+// Validation logic from core/breakpoints.py
+//  return !torch.isnan(tensor).any() && !torch.isinf(tensor).any();
+//};
+
+export const tensorValidator = async (tensorData) => {
+  const { simd } = await import('wasm-feature-detect');
+  const useSIMD = await simd();
+  
+  const module = await import('../../public/wasm/tensor' + 
+    (useSIMD ? '-simd' : '') + '.wasm');
+  // Run validation using compiled WASM
+  return module.validate_tensor(tensorData);
+};
+
 export default {
   VALIDATION_ERRORS,
   validateConditionSyntax,
@@ -217,5 +233,6 @@ export default {
   validateWebSocketMessage,
   validateMetricName,
   validateTensorNumerics,
-  validateShapeString
+  validateShapeString,
+  tensorValidator
 };
