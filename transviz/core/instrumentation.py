@@ -1,3 +1,4 @@
+from time import sleep
 import torch
 from typing import Dict, Optional
 from .breakpoints import BreakpointManager
@@ -6,7 +7,9 @@ from .diff_engine import TensorDiff
 from .utils import get_tensor_stats
 from functools import wraps
 from transviz.server.api import create_server
+from transviz.server.websockets import WebSocketManager
 import threading
+import uvicorn
 
 # Modified trace decorator
 def trace(name, capture_shapes=True, capture_gradients=False):
@@ -56,7 +59,7 @@ class ModelVisualizer:
         self.server_thread = None
         self.server_running = False
 
-    def start(self):
+    async def start(self):
         """Start the visualization server in a background thread"""
         
         if not self.server_running:
@@ -78,10 +81,82 @@ class ModelVisualizer:
         if self.server:
             self.server.stop()
 
+    def start(self):
+        """Initialize and start the visualization server"""
+        if self.server_running:
+            return
+
+        # Create FastAPI server instance
+        self.server = create_server(self)
+        
+        # Start server in background thread
+        import threading
+        self.server_thread = threading.Thread(
+            target=self._run_server,
+            daemon=True
+        )
+        self.server_thread.start()
+        # Wait for server to initialize
+        sleep(5)
+        
+        self.server_running = True
+
+    def _run_server(self):
+        """Internal method to run the uvicorn server"""
+        import uvicorn
+        uvicorn.run(
+            self.server,
+            host="0.0.0.0",
+            port=self.config.port,
+            log_level=self.config.log_level.lower(),
+            ws_ping_interval=60,
+            ws_ping_timeout=60
+        )
+
+    def stop(self):
+        """Stop the visualization server"""
+        if self.server_running:
+            self.server.should_exit = True
+            self.server_thread.join(timeout=5)
+            self.server_running = False
+    def start(self):
+        """Start the visualization server in a background thread"""
+        if self.server_running:
+            return
+
+        self.server = create_server(self)
+        
+        # Create and start server thread
+        self.server_thread = threading.Thread(
+            target=self._run_server,
+            daemon=True  # Ensures thread exits with main program
+        )
+        self.server_thread.start()
+        self.server_running = True
+
+    def _run_server(self):
+        """Internal method to run the uvicorn server"""
+        uvicorn.run(
+            self.server,
+            host="0.0.0.0",
+            port=self.config.port,
+            log_level=self.config.log_level.lower(),
+            ws_ping_interval=60,
+            ws_ping_timeout=60
+        )
+
+    def stop(self):
+        """Stop the visualization server"""
+        if self.server_running:
+            # Signal server to shutdown
+            self.server.should_exit = True
+            self.server_thread.join(timeout=5)
+            self.server_running = False
+
     def log_tensor(self, name: str, tensor: torch.Tensor):
         if self.config.mode == "light":
             # Only log metadata in light mode
-            self.server.broadcast({
+            self.server.state.ws_manager.sync_broadcast({
                 "type": "tensor_update",
                 "name": name,
                 "shape": tensor.shape,
@@ -92,14 +167,14 @@ class ModelVisualizer:
             # Compute diff if tensor exists in cache
             if name in self.tensor_cache:
                 diff = TensorDiff.compute_diff(self.tensor_cache[name], tensor)
-                self.server.broadcast({
+                self.server.state.ws_manager.sync_broadcast({
                     "type": "tensor_diff",
                     "name": name,
                     "diff": diff
                 })
             else:
                 # Send full tensor data for first update
-                self.server.broadcast({
+                self.server.state.ws_manager.sync_broadcast({
                     "type": "tensor_full",
                     "name": name,
                     "data": tensor.numpy().tolist(),
@@ -116,7 +191,7 @@ class ModelVisualizer:
                 self.metrics_history[name] = []
             self.metrics_history[name].append((step, value))
 
-        self.server.broadcast({
+        self.server.state.ws_manager.sync_broadcast({
             "type": "metrics_update",
             "metrics": metrics,
             "step": step
@@ -133,7 +208,7 @@ class ModelVisualizer:
 
     def handle_breakpoint(self, name: str, tensor: torch.Tensor):
         if self.check_breakpoint(name, tensor):
-            self.server.broadcast({
+            self.server.state.ws_manager.sync_broadcast({
                 "type": "breakpoint_hit",
                 "name": name,
                 "tensor_name": f"breakpoint_{name}",

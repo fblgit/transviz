@@ -5,12 +5,13 @@ from typing import Dict, Any, List
 import asyncio
 import json
 from transviz.core.config import VizConfig
+#from transviz.core import ModelVisualizer
 from .websockets import WebSocketManager
 from .storage import TensorStorage
 
 app = FastAPI()
 ws_manager = WebSocketManager()
-tensor_storage = TensorStorage()
+#tensor_storage = TensorStorage()
 
 class ModelVisualizer:
     def __init__(self, config: VizConfig):
@@ -18,6 +19,14 @@ class ModelVisualizer:
 
 def create_server(visualizer: ModelVisualizer):
     app.state.visualizer = visualizer
+    app.state.ws_manager = ws_manager
+    app.state.tensor_storage = TensorStorage(visualizer.config)
+    
+    # Initialize async components when server starts
+    @app.on_event("startup")
+    async def startup_event():
+        await ws_manager.start()  # Initialize async tasks here
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=visualizer.config.cors_origins,
