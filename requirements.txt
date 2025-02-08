@@ -16,4 +16,4 @@ jupyterlab>=3.2.0
 ipython>=7.29.0
 matplotlib>=3.4.3
 ipywidgets>=7.6.5
-
+websocket-client>=1.8.0

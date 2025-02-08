@@ -4,7 +4,7 @@ from typing import Dict, Tuple, Union
 
 class TensorDiff:
     @staticmethod
-    def compute_diff(old_tensor: torch.Tensor, new_tensor: torch.Tensor, threshold: float = 1e-6) -> Dict[str, Union[str, np.ndarray, Tuple]]:
+    def legacy_compute_diff(old_tensor: torch.Tensor, new_tensor: torch.Tensor, threshold: float = 1e-6) -> Dict[str, Union[str, np.ndarray, Tuple]]:
         """
         Compute the difference between two tensors.
         
@@ -129,3 +129,36 @@ class TensorDiff:
                     8)  # 8 bytes for each dimension in shape, 8 for type
         
         raise ValueError(f"Unknown diff type: {diff['type']}")
+
+    @staticmethod
+    def compute_diff(old_tensor: torch.Tensor, new_tensor: torch.Tensor, threshold: float = 1e-6) -> Dict:
+        if old_tensor.shape != new_tensor.shape:
+            return {'type': 'full', 'data': new_tensor.cpu().numpy().tolist()}
+
+        if old_tensor.dtype != new_tensor.dtype:
+            return {'type': 'full', 'data': new_tensor.cpu().numpy().tolist()}
+
+        if old_tensor.dtype in [torch.float32, torch.float64]:
+            diff = (new_tensor - old_tensor).abs()
+            mask = diff > threshold
+        else:
+            diff = new_tensor != old_tensor
+            mask = diff
+
+        if not mask.any():
+            return {'type': 'no_change'}
+
+        indices = torch.nonzero(mask).cpu().numpy()
+        values = new_tensor[mask].cpu().numpy()
+
+        # If many values have changed, send the full tensor (convert to list)
+        if indices.size > 0.5 * new_tensor.numel():
+            return {'type': 'full', 'data': new_tensor.cpu().numpy().tolist()}
+
+        # Convert torch.Size, indices, and values to Python-native lists.
+        return {
+            'type': 'sparse',
+            'shape': list(new_tensor.shape),
+            'indices': indices.tolist(),
+            'values': values.tolist()
+        }

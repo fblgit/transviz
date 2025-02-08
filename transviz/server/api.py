@@ -47,7 +47,8 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
-        await ws_manager.disconnect(websocket)
+        if websocket is not None and ws_manager is not None:
+            await ws_manager.disconnect(websocket)
 
 async def handle_websocket_message(websocket: WebSocket, data: str):
     message = json.loads(data)
