@@ -5,31 +5,73 @@ from .config import VizConfig
 from .diff_engine import TensorDiff
 from .utils import get_tensor_stats
 from functools import wraps
+from transviz.server.api import create_server
+import threading
 
+# Modified trace decorator
 def trace(name, capture_shapes=True, capture_gradients=False):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            # Get active visualizer instance
+            visualizer = ModelVisualizer.get_instance()
+            if not visualizer:
+                return func(*args, **kwargs)
+
             # Pre-execution logic
+            visualizer.log_tensor(f"{name}_input", args[0])
+            
+            # Execute original function
             result = func(*args, **kwargs)
+            
             # Post-execution logic
+            visualizer.log_tensor(name, result)
+            
+            if capture_gradients:
+                result.register_hook(
+                    lambda grad: visualizer.log_tensor(f"{name}_grad", grad)
+                )
+            
+            # Check breakpoints
+            if visualizer.check_breakpoint(name, result):
+                visualizer.handle_breakpoint(name, result)
+
             return result
         return wrapper
     return decorator
 
 class ModelVisualizer:
+    _instance = None
+
     def __init__(self, config: VizConfig):
+        if ModelVisualizer._instance:
+            raise RuntimeError("Use ModelVisualizer.get_instance() after initialization")
+        ModelVisualizer._instance = self
         self.config = config
         self.breakpoint_manager = BreakpointManager()
         self.server = None
         self.tensor_cache = {}
         self.metrics_history = {}
+        # Add server thread management
+        self.server_thread = None
+        self.server_running = False
 
     def start(self):
-        # Initialize and start the visualization server
-        from ..server.api import create_server
-        self.server = create_server(self)
-        self.server.start()
+        """Start the visualization server in a background thread"""
+        
+        if not self.server_running:
+            self.server = create_server(self)
+            self.server_thread = threading.Thread(
+                target=self.server.run,
+                kwargs={'host': 'localhost', 'port': self.config.port}
+            )
+            self.server_thread.daemon = True
+            self.server_thread.start()
+            self.server_running = True
+
+    @classmethod
+    def get_instance(cls):
+        return cls._instance
 
     def stop(self):
         # Stop the visualization server

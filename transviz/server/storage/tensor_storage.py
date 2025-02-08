@@ -2,8 +2,8 @@ import numpy as np
 from typing import Dict, Optional, List, Tuple
 import threading
 import time
-from ..core.config import VizConfig
-from ..core.diff_engine import TensorDiff
+from transviz.core.config import VizConfig
+from transviz.core.diff_engine import TensorDiff
 
 class TensorStorage:
     def __init__(self, config: VizConfig):

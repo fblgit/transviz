@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Any
 import time
 import threading
-from ..core.config import VizConfig
+from transviz.core.config import VizConfig
 
 class BreakpointStorage:
     def __init__(self, config: VizConfig):

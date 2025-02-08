@@ -3,7 +3,7 @@ import time
 import threading
 import numpy as np
 from collections import deque
-from ..core.config import VizConfig
+from transviz.core.config import VizConfig
 
 class MetricStorage:
     def __init__(self, config: VizConfig):

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Dict, Any, List
 import asyncio
 import json
-from ..core.config import VizConfig
+from transviz.core.config import VizConfig
 from .websockets import WebSocketManager
 from .storage import TensorStorage
 
