@@ -1,36 +1,17 @@
-// ui/src/stores/tensorStore.js
+/* ui/src/stores/tensorStore.js */
 import create from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { applyTensorDiff, validateDiff } from '../utils/diffHelpers';
 import { validateTensorStructure, validateConditionSyntax } from '../utils/validationHelpers';
+import { wsClient } from '../services/wsClient';
 
 export const useStore = create(
   immer((set, get) => ({
     // State
     tensors: new Map(),        // Map<string, Tensor>
     breakpoints: new Map(),    // Map<string, Breakpoint>
-    wsConnection: null,
-    
-    // Actions
-    initialize: () => {
-      const ws = new WebSocket(`wss://${window.location.host}/tensors`);
-      set({ wsConnection: ws });
 
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'tensor_update') {
-          get().handleTensorUpdate(message);
-        }
-        if (message.type === 'breakpoint_hit') {
-          get().handleBreakpointHit(message);
-        }
-      };
-
-      ws.onclose = () => {
-        setTimeout(() => get().initialize(), 1000);
-      };
-    },
-
+    // Action: Handle incoming tensor update messages.
     handleTensorUpdate: (message) => {
       set(state => {
         const tensor = state.tensors.get(message.name) || {
@@ -43,7 +24,6 @@ export const useStore = create(
             lastUpdated: Date.now()
           }
         };
-
         try {
           validateDiff(message.diff, tensor.metadata.shape);
           applyTensorDiff(tensor, message.diff);
@@ -55,6 +35,7 @@ export const useStore = create(
       });
     },
 
+    // Action: Handle incoming breakpoint hit message.
     handleBreakpointHit: (message) => {
       set(state => {
         const bp = state.breakpoints.get(message.name);
@@ -65,11 +46,11 @@ export const useStore = create(
       });
     },
 
+    // Action: Update a breakpoint’s condition.
     updateBreakpoint: (layerId, condition) => {
       if (!validateConditionSyntax(condition)) {
         throw new Error('Invalid breakpoint condition syntax');
       }
-
       set(state => {
         const bp = state.breakpoints.get(layerId) || {
           condition: '',
@@ -81,6 +62,7 @@ export const useStore = create(
       });
     },
 
+    // Action: Toggle a breakpoint’s enabled state.
     toggleBreakpoint: (layerId) => {
       set(state => {
         const bp = state.breakpoints.get(layerId);
@@ -90,11 +72,11 @@ export const useStore = create(
       });
     },
 
+    // Action: Add a new breakpoint.
     addBreakpoint: (layerId, condition) => {
       if (!validateConditionSyntax(condition)) {
         throw new Error('Invalid breakpoint condition');
       }
-
       set(state => {
         state.breakpoints.set(layerId, {
           condition,
@@ -105,12 +87,14 @@ export const useStore = create(
       });
     },
 
+    // Action: Remove an existing breakpoint.
     removeBreakpoint: (layerId) => {
       set(state => {
         state.breakpoints.delete(layerId);
       });
     },
 
+    // Action: Prune tensor entries that haven't been updated within the maxAge (default: 5 minutes).
     pruneOldTensors: (maxAge = 300000) => {
       const now = Date.now();
       set(state => {
@@ -122,6 +106,7 @@ export const useStore = create(
       });
     },
 
+    // Action: Returns a snapshot of the tensor data.
     getTensorSnapshot: (name) => {
       const tensor = get().tensors.get(name);
       return tensor ? structuredClone(tensor) : null;
@@ -129,12 +114,20 @@ export const useStore = create(
   }))
 );
 
-// Initialize WebSocket connection
-let initialized = false;
-useStore.subscribe(state => {
-  if (!initialized && state.initialize) {
-    state.initialize();
-    setInterval(() => state.pruneOldTensors(), 60000);
-    initialized = true;
+// Subscribe to global wsClient events only once.
+let wsSubscribed = false;
+useStore.subscribe(() => {
+  if (!wsSubscribed) {
+    wsSubscribed = true;
+    // Subscribe to tensor updates
+    wsClient.subscribe('tensor_update', (message) => {
+      useStore.getState().handleTensorUpdate(message);
+    });
+    // Subscribe to breakpoint hit events (if needed in tensor store too)
+    wsClient.subscribe('breakpoint_hit', (message) => {
+      useStore.getState().handleBreakpointHit(message);
+    });
+    // Start a periodic prune of old tensors every minute.
+    setInterval(() => useStore.getState().pruneOldTensors(), 60000);
   }
 });

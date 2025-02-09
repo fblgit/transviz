@@ -1,3 +1,4 @@
+/* ui/src/App.jsx */
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { wsClient } from './services/wsClient';
@@ -7,8 +8,12 @@ import MetricsDashboard from './components/MetricsDashboard/MetricsDashboard';
 
 const App = () => {
   useEffect(() => {
+    // Initialize the centralized WebSocket connection on app startup.
     wsClient.initialize();
-    return () => wsClient.close();
+    return () => {
+      // Clean up the connection when the app unmounts.
+      wsClient.close();
+    };
   }, []);
 
   return (
@@ -57,7 +62,7 @@ const App = () => {
             <span>ModelViz Debugging Toolkit</span>
             <div className="flex items-center space-x-4">
               <span>
-                WebSocket: {wsClient.socket?.readyState === 1 ? '✅ Connected' : '❌ Disconnected'}
+                WebSocket: {wsClient.socket && wsClient.socket.readyState === 1 ? '✅ Connected' : '❌ Disconnected'}
               </span>
               <span>v1.0.0</span>
             </div>
@@ -69,4 +74,3 @@ const App = () => {
 };
 
 export default App;
-

@@ -27,13 +27,13 @@ def create_server(visualizer: ModelVisualizer):
     async def startup_event():
         await ws_manager.start()  # Initialize async tasks here
 
-    #app.add_middleware(
-    #    CORSMiddleware,
-    #    allow_origins=visualizer.config.cors_origins,
-    #    allow_credentials=True,
-    #    allow_methods=["*"],
-    #    allow_headers=["*"],
-    #)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # visualizer.config.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     return app
 

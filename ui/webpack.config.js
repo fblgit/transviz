@@ -29,7 +29,10 @@ module.exports = {
       },
       {
         test: /\.(js|jsx)$/,
-        exclude: /node_modules/,
+        exclude: [
+          path.resolve(__dirname, 'node_modules/brace/worker/coffee.js'),
+         '/node_modules/',
+        ]
         use: {
           loader: 'babel-loader',
           options: {
@@ -87,9 +90,9 @@ module.exports = {
       },
     },
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/ws': {
-        target: 'ws://localhost:8080',
+      '/api': 'http://127.0.0.1:8080',
+      '/wss': {
+        target: 'ws://127.0.0.1:8080/ws',
         ws: true
       }
     }

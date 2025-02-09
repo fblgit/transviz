@@ -1,45 +1,18 @@
-// ui/src/stores/breakpointStore.js
+/* ui/src/stores/breakpointStore.js */
 import create from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { validateConditionSyntax } from '../utils/validationHelpers';
+import { wsClient } from '../services/wsClient';
 
 export const useStore = create(
   immer((set, get) => ({
-    // State
-    breakpoints: new Map(), // Map<layerId, Breakpoint>
-    wsConnection: null,
-    
-    // Breakpoint structure:
-    // {
-    //   condition: string,
-    //   hits: number,
-    //   enabled: boolean,
-    //   lastHit: timestamp,
-    //   created: timestamp
-    // }
+    // State: A map to store breakpoints keyed by layerId
+    breakpoints: new Map(),
 
-    // Actions
-    initialize: () => {
-      const ws = new WebSocket(`wss://${window.location.host}/breakpoints`);
-      set({ wsConnection: ws });
+    // Removed internal WebSocket connection and initialization;
+    // We now rely on the global wsClient to dispatch messages.
 
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'breakpoint_hit') {
-          get().handleBreakpointHit(message);
-        }
-      };
-
-      ws.onclose = () => {
-        setTimeout(() => get().initialize(), 1000);
-      };
-
-      // Resend active breakpoints on reconnect
-      ws.onopen = () => {
-        get().resendActiveBreakpoints();
-      };
-    },
-
+    // Action: Process a breakpoint hit received via wsClient.
     handleBreakpointHit: (message) => {
       set(state => {
         const bp = state.breakpoints.get(message.layerId);
@@ -51,11 +24,11 @@ export const useStore = create(
       });
     },
 
+    // Action: Add a new breakpoint after validating its condition syntax.
     addBreakpoint: (layerId, condition) => {
       if (!validateConditionSyntax(condition)) {
         throw new Error('Invalid breakpoint condition syntax');
       }
-
       set(state => {
         state.breakpoints.set(layerId, {
           condition,
@@ -69,11 +42,11 @@ export const useStore = create(
       });
     },
 
+    // Action: Update an existing breakpoint.
     updateBreakpoint: (layerId, condition) => {
       if (!validateConditionSyntax(condition)) {
         throw new Error('Invalid breakpoint condition syntax');
       }
-
       set(state => {
         const bp = state.breakpoints.get(layerId);
         if (bp) {
@@ -83,6 +56,7 @@ export const useStore = create(
       });
     },
 
+    // Action: Toggle a breakpoint's enabled state.
     toggleBreakpoint: (layerId) => {
       set(state => {
         const bp = state.breakpoints.get(layerId);
@@ -93,6 +67,7 @@ export const useStore = create(
       });
     },
 
+    // Action: Remove a breakpoint and notify the server.
     removeBreakpoint: (layerId) => {
       set(state => {
         if (state.breakpoints.delete(layerId)) {
@@ -101,27 +76,29 @@ export const useStore = create(
       });
     },
 
+    // Action: Synchronize a breakpoint's state with the server.
     syncBreakpoint: (layerId) => {
       const bp = get().breakpoints.get(layerId);
       if (bp) {
+        // If enabled, send an update; if disabled, send a disable action.
         get().sendBreakpointUpdate(layerId, bp.enabled ? 'update' : 'disable');
       }
     },
 
+    // Action: Send a breakpoint update via the centralized wsClient.
     sendBreakpointUpdate: (layerId, action) => {
       const bp = get().breakpoints.get(layerId);
-      if (!bp || !get().wsConnection) return;
-
+      if (!bp) return;
       const message = {
         type: 'breakpoint_update',
         action,
         layerId,
         condition: action !== 'remove' ? bp.condition : null
       };
-
-      get().wsConnection.send(JSON.stringify(message));
+      wsClient.send(message);
     },
 
+    // Action: Resend all active breakpoints (for example on reconnect).
     resendActiveBreakpoints: () => {
       get().breakpoints.forEach((bp, layerId) => {
         if (bp.enabled) {
@@ -130,29 +107,35 @@ export const useStore = create(
       });
     },
 
-    pruneInactiveBreakpoints: (maxAge = 604800000) => { // 1 week
+    // Action: Prune breakpoints that have not been hit within maxAge (default: 1 week).
+    pruneInactiveBreakpoints: (maxAge = 604800000) => {
       const now = Date.now();
       set(state => {
         state.breakpoints.forEach((bp, layerId) => {
-          if (now - bp.lastHit > maxAge && !bp.enabled) {
+          if (bp.lastHit && now - bp.lastHit > maxAge && !bp.enabled) {
             state.breakpoints.delete(layerId);
           }
         });
       });
     },
 
+    // Action: Retrieve the state of a specific breakpoint.
     getBreakpointState: (layerId) => {
       return get().breakpoints.get(layerId) || null;
     }
   }))
 );
 
-// Initialize WebSocket connection
-let initialized = false;
-useStore.subscribe(state => {
-  if (!initialized && state.initialize) {
-    state.initialize();
-    setInterval(() => state.pruneInactiveBreakpoints(), 3600000); // Hourly pruning
-    initialized = true;
+// Subscribe to breakpoint hit events coming from the centralized wsClient.
+// This subscription is performed only once.
+let wsSubscribed = false;
+useStore.subscribe(() => {
+  if (!wsSubscribed) {
+    wsSubscribed = true;
+    wsClient.subscribe('breakpoint_hit', (message) => {
+      useStore.getState().handleBreakpointHit(message);
+    });
+    // Start pruning inactive breakpoints on an hourly basis.
+    setInterval(() => useStore.getState().pruneInactiveBreakpoints(), 3600000);
   }
 });
