@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, HTTPException, BackgroundTasks
+from fastapi import FastAPI, WebSocket, HTTPException, BackgroundTasks, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List
@@ -27,30 +27,29 @@ def create_server(visualizer: ModelVisualizer):
     async def startup_event():
         await ws_manager.start()  # Initialize async tasks here
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=visualizer.config.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    #app.add_middleware(
+    #    CORSMiddleware,
+    #    allow_origins=visualizer.config.cors_origins,
+    #    allow_credentials=True,
+    #    allow_methods=["*"],
+    #    allow_headers=["*"],
+    #)
 
     return app
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await ws_manager.connect(websocket)
+    await app.state.ws_manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
             await handle_websocket_message(websocket, data)
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        print(f"WebSocket error:\n {e}")
     try:
-        if websocket is not None and ws_manager is not None:
-            await ws_manager.disconnect(websocket)
-    except:
-        pass
+        await app.state.ws_manager.disconnect(websocket)
+    except Exception as e:
+        print(f"WebSocket error:\n {e}")
 
 async def handle_websocket_message(websocket: WebSocket, data: str):
     message = json.loads(data)
