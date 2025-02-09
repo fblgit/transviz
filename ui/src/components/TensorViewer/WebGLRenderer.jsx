@@ -1,6 +1,7 @@
 // ui/src/components/TensorViewer/WebGLRenderer.jsx
 import React, { useRef, useEffect, useMemo } from 'react';
-import { useStore } from '../../stores/tensorStore';
+//import { useStore } from '../../stores/tensorStore';
+import { useGlobalStore } from '../../stores/globalStore';
 import { tensorValidator } from '../../utils/validationHelpers';
 
 /**
@@ -17,7 +18,8 @@ import { tensorValidator } from '../../utils/validationHelpers';
 const WebGLRenderer = ({ tensorId }) => {
   const canvasRef = useRef(null);
   const glRef = useRef(null);
-  const { tensors } = useStore();
+  //const { tensors } = useStore();
+  const { tensors } = useGlobalStore(state => state.tensors);
   const tensor = tensors.get(tensorId);
 
   // WebGL initialization

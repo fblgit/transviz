@@ -142,13 +142,13 @@ export const safeEvalCondition = (condition, tensor) => {
  * @returns {boolean}
  */
 export const validateWebSocketMessage = (message) => {
-  const types = ['tensor_update', 'breakpoint_hit', 'metric_update'];
+  const types = ['tensor_diff', 'tensor_update', 'breakpoint_hit', 'metric_update'];
   const required = {
+    tensor_diff: ['type', 'name', 'diff'],
     tensor_update: ['type', 'name', 'data'],
     breakpoint_hit: ['type', 'name', 'tensor'],
     metric_update: ['type', 'name', 'value', 'timestamp']
   };
-
   if (!types.includes(message.type)) return false;
   return required[message.type].every(k => message.hasOwnProperty(k));
 };

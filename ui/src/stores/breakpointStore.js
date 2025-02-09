@@ -1,5 +1,5 @@
 /* ui/src/stores/breakpointStore.js */
-import create from 'zustand';
+import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { validateConditionSyntax } from '../utils/validationHelpers';
 import { wsClient } from '../services/wsClient';

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useStore } from '../../stores/tensorStore';
+//import { useStore } from '../../stores/tensorStore';
+import { useGlobalStore } from '../../stores/globalStore';
 import WebGLRenderer from './WebGLRenderer';
 import TensorStatsPanel from './TensorStatsPanel';
 import DimensionControls from './DimensionControls';
 
 const TensorViewer = () => {
   const [selectedTensor, setSelectedTensor] = useState(null);
-  const { tensors } = useStore();
+  // const { tensors } = useStore();
+  const tensors = useGlobalStore(state => state.tensors);
 
   useEffect(() => {
     // Subscribe to tensor updates
-    const unsubscribe = useStore.subscribe(
+    const unsubscribe = useGlobalStore.subscribe(
       state => state.tensors,
       (tensors) => {
         // Update the view when tensors change

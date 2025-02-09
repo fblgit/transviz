@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { useStore } from '../../stores/tensorStore';
+//import { useStore } from '../../stores/tensorStore';
+import { useGlobalStore } from '../../stores/globalStore';
 import { formatStats, tensorSummary } from '../../utils/tensorMath';
 
 /**
@@ -13,7 +14,8 @@ import { formatStats, tensorSummary } from '../../utils/tensorMath';
  * - Support tensor comparison operations
  */
 const TensorStatsPanel = ({ tensorId }) => {
-  const { tensors } = useStore();
+  //const { tensors } = useStore();
+  const tensors = useGlobalStore(state => state.tensors);
   const tensor = tensors.get(tensorId);
   
   // Memoized statistics calculation

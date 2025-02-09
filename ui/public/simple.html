@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TransViz Debug Console</title>
+    <style>
+      body { font-family: sans-serif; padding: 20px; }
+      table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; }
+      tr:hover { background-color: #f1f1f1; cursor: pointer; }
+      .payload { white-space: pre-wrap; background: #eee; padding: 10px; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <h2>Websocket Debug Console</h2>
+    <p>Status: <span id="status">Disconnected</span></p>
+    <button onclick="clearLog()">Clear Log</button>
+    <table id="eventsTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Type</th>
+          <th>Tensor/Event Name</th>
+          <th>Received At</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="payloadDisplay" class="payload" style="display:none;"></div>
+
+    <script>
+      let ws;
+      let eventCounter = 0;
+
+      // Connect to the websocket (adjust host/port if needed)
+      function connectWebSocket() {
+          // Make sure to point to the right URL.
+          ws = new WebSocket("ws://127.0.0.1:8080/ws");
+
+          ws.onopen = () => {
+              document.getElementById("status").innerText = "Connected";
+          };
+
+          ws.onmessage = (event) => {
+              // Here we assume messages are sent as JSON strings or simple JSON.
+              // In the server code, sometimes json.dumps() is called before sending.
+              let message;
+              try {
+                  message = JSON.parse(event.data);
+              } catch(e) {
+                  message = {type: "unknown", data: event.data};
+              }
+              addEventToTable(message);
+          };
+
+          ws.onclose = () => {
+              document.getElementById("status").innerText = "Disconnected";
+          };
+
+          ws.onerror = (err) => {
+              console.error("WebSocket Error:", err);
+          };
+      }
+
+      // Add an event row, and make it clickable to view details
+      function addEventToTable(message) {
+          eventCounter++;
+          const tbody = document.getElementById("eventsTable").querySelector("tbody");
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+              <td>${eventCounter}</td>
+              <td>${message.type || "N/A"}</td>
+              <td>${message.name || message.tensor_name || "N/A"}</td>
+              <td>${new Date().toLocaleTimeString()}</td>
+          `;
+          tr.addEventListener("click", ()=> {
+              const payloadDisplay = document.getElementById("payloadDisplay");
+              payloadDisplay.style.display = "block";
+              payloadDisplay.innerHTML = JSON.stringify(message, null, 2) +
+                  `<br><br><button onclick='downloadPayload(${JSON.stringify(message)})'>Download JSON</button>`;
+          });
+          tbody.appendChild(tr);
+      }
+
+      // Clear the events table
+      function clearLog() {
+          const tbody = document.getElementById("eventsTable").querySelector("tbody");
+          tbody.innerHTML = "";
+          eventCounter = 0;
+      }
+
+      // Download a JSON payload as a file
+      function downloadPayload(message) {
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(message, null, 2));
+          const downloadAnchorNode = document.createElement("a");
+          downloadAnchorNode.setAttribute("href", dataStr);
+          downloadAnchorNode.setAttribute("download", "payload.json");
+          document.body.appendChild(downloadAnchorNode);
+          downloadAnchorNode.click();
+          downloadAnchorNode.remove();
+      }
+
+      // Initialize when page loads
+      window.onload = connectWebSocket;
+    </script>
+  </body>
+</html>

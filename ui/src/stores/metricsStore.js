@@ -1,5 +1,5 @@
 /* ui/src/stores/metricsStore.js */
-import create from 'zustand';
+import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { validateWebSocketMessage, validateMetricName } from '../utils/validationHelpers';
 import { wsClient } from '../services/wsClient';

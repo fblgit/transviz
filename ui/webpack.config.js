@@ -28,6 +28,11 @@ module.exports = {
         type: 'webassembly/async'
       },
       {
+        test: /\.js$/,
+        enforce: "pre",
+        use: ["source-map-loader"],
+      },
+      {
         test: /\.(js|jsx)$/,
         exclude: [
           path.resolve(__dirname, 'node_modules/brace/worker/coffee.js'),

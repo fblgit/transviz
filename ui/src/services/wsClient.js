@@ -34,9 +34,10 @@ class WebSocketClient {
 
   // When connection opens, reset backoff, flush any queued messages
   handleOpen() {
-    this.reconnectAttempts = 0;
+    this.reconnectAttempts = 3;
     this.flushPendingMessages();
     console.log('WebSocket connected');
+    console.log(this.socket.readyState);
   }
 
   // On receiving a message, parse the message and – if valid – dispatch it to subscribers

@@ -5,6 +5,7 @@
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "3d-core-raub": "^5.1.1",
     "date-fns": "^4.1.0",
     "immer": "^10.0.2",
     "react": "^18.2.0",
@@ -16,6 +17,7 @@
     "recharts": "^2.7.4",
     "tailwindcss": "^3.3.3",
     "wasm-feature-detect": "^1.8.0",
+    "webgl-raub": "^5.1.0",
     "zustand": "^4.3.8"
   },
   "scripts": {

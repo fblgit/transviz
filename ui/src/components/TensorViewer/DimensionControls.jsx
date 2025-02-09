@@ -1,10 +1,12 @@
 // ui/src/components/TensorViewer/DimensionControls.jsx
 import React, { useState, useEffect } from 'react';
-import { useStore } from '../../stores/tensorStore';
+//import { useStore } from '../../stores/tensorStore';
+import { useGlobalStore } from '../../stores/globalStore';
 import { validateTensor } from '../../utils/validationHelpers';
 
 const DimensionControls = ({ tensorId }) => {
-  const { tensors, updateTensorMetadata } = useStore();
+  //const { tensors, updateTensorMetadata } = useStore();
+  const { tensors, updateTensorMetadata } = useGlobalStore(state => state.tensors);
   const tensor = tensors.get(tensorId);
   const [activeDimensions, setActiveDimensions] = useState([]);
   const [sliceValues, setSliceValues] = useState({});
